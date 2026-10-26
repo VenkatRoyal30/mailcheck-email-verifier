@@ -136,7 +136,8 @@ def build_pdf(output_filename="assignment_submission.pdf"):
     meta_text = (
         "<b>Project Title:</b> MailCheck – Bulk Email Verification Tool &nbsp;|&nbsp; "
         "<b>Framework:</b> React 19 + Flask 3.1 + SQLAlchemy<br/>"
-        "<b>Runtime Environment:</b> Linux (Render) / Windows &nbsp;|&nbsp; <b>Python:</b> 3.11.10<br/>"
+        "<b>Local Test Runtime:</b> Windows / Python 3.14.0 &nbsp;|&nbsp; "
+        "<b>Render Deployment Runtime:</b> Linux / Python 3.11.10<br/>"
         "<b>Classification Standard:</b> RFC 5321 / RFC 5322 / RFC 7505 &nbsp;|&nbsp; "
         "<b>Status:</b> Fully Implemented, Tested & Deployed"
     )
@@ -168,7 +169,8 @@ def build_pdf(output_filename="assignment_submission.pdf"):
     # 3. Technology Stack
     story.append(Paragraph("3. Technology Stack", h1_style))
     story.append(Paragraph("• <b>Frontend:</b> React 19, TypeScript, Vite 6, Tailwind CSS (light/dark theme), Lucide Icons, Typed REST API Client.", bullet_style))
-    story.append(Paragraph("• <b>Backend:</b> Python 3.11.10, Flask 3.1 REST API, Gunicorn 23.0 WSGI Server, email-validator (RFC 5322/6531), dnspython (MX/Null MX/Fallback), pytest.", bullet_style))
+    story.append(Paragraph("• <b>Backend:</b> Flask 3.1 REST API, Gunicorn 23.0 WSGI Server, email-validator (RFC 5322/6531), dnspython (MX/Null MX/Fallback), pytest.", bullet_style))
+    story.append(Paragraph("• <b>Runtimes:</b> Cloud deployment on Python 3.11.10 (Render); local tests executed on Python 3.14.0.", bullet_style))
     story.append(Paragraph("• <b>Database:</b> SQLAlchemy 2.0 ORM with SQLite for local development and PostgreSQL support through <code>DATABASE_URL</code>.", bullet_style))
     story.append(Spacer(1, 6))
 
@@ -194,7 +196,7 @@ def build_pdf(output_filename="assignment_submission.pdf"):
 
     # 6. Testing Summary Table
     story.append(Paragraph("6. Automated Testing Summary (Actual Test Execution)", h1_style))
-    story.append(Paragraph("All 58 backend and integration tests executed and passed via pytest with mocked DNS and socket layers:", body_style))
+    story.append(Paragraph("All 58 backend and integration tests executed and passed via pytest under Python 3.14.0 with mocked DNS and socket layers:", body_style))
 
     test_table_data = [
         [Paragraph("Test Module", table_header_style), Paragraph("Scope & Test Focus", table_header_style), Paragraph("Tests", table_header_style), Paragraph("Outcome", table_header_style)],
@@ -205,7 +207,7 @@ def build_pdf(output_filename="assignment_submission.pdf"):
         [Paragraph("test_api_verify.py", table_cell_style), Paragraph("POST /api/verify, input validation, multiline input, batch limits, database persistence", table_cell_style), Paragraph("6", table_cell_style), Paragraph("6 PASSED", table_cell_style)],
         [Paragraph("test_api_history.py", table_cell_style), Paragraph("GET /api/history, batch detail, single record deletion with count recalculation, CSV export", table_cell_style), Paragraph("1", table_cell_style), Paragraph("1 PASSED", table_cell_style)],
         [Paragraph("test_frontend_routes.py", table_cell_style), Paragraph("GET /, SPA client routes, asset delivery, unknown /api 404 JSON, root WSGI app export, PostgreSQL URL normalization", table_cell_style), Paragraph("7", table_cell_style), Paragraph("7 PASSED", table_cell_style)],
-        [Paragraph("<b>TOTALS</b>", table_cell_style), Paragraph("<b>Comprehensive test suite with 100% pass rate in 3.24s</b>", table_cell_style), Paragraph("<b>58</b>", table_cell_style), Paragraph("<b>58 PASSED</b>", table_cell_style)],
+        [Paragraph("<b>TOTALS</b>", table_cell_style), Paragraph("<b>Comprehensive test suite with 100% pass rate in 3.31s</b>", table_cell_style), Paragraph("<b>58</b>", table_cell_style), Paragraph("<b>58 PASSED</b>", table_cell_style)],
     ]
 
     test_table = Table(test_table_data, colWidths=[100, 290, 50, 90])

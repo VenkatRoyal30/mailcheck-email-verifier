@@ -33,12 +33,15 @@ In modern web applications and outbound communication campaigns, high email boun
 - **Client Architecture:** Typed REST API client, zero unauthenticated data leaks
 
 ### Backend
-- **Framework:** Python 3.11.10 / Flask 3.1 REST API
+- **Framework:** Flask 3.1 REST API
+- **Deployment Runtime:** Python 3.11.10 (Render Linux environment)
+- **Local Test Environment:** Python 3.14.0 (Windows)
 - **Syntax RFC Engine:** `email-validator` (RFC 5322 & RFC 6531 compliance)
 - **DNS Mail Routing Engine:** `dnspython` (MX records, RFC 7505 Null MX, RFC 5321 Fallback)
 - **Testing:** `pytest` (mocked DNS and socket layers)
 - **ORM & Data Layer:** SQLAlchemy 2.0 (SQLite for local development, PostgreSQL ready for production)
 - **Reporting:** ReportLab PDF Generation
+
 
 
 ---
@@ -207,12 +210,12 @@ Open your browser to: **`http://localhost:5173`** (API requests are automaticall
 The backend test suite uses `pytest` with network-isolated mocks for DNS and SMTP probing:
 
 ```powershell
-# Run all 58 backend tests with verbose output
+# Run all 58 backend tests with verbose output (executes in 3.31s under Python 3.14.0)
 cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 .\venv\Scripts\pytest -v
 ```
 
-### Test Coverage Highlights (58 Passed Tests)
+### Test Coverage Highlights (58 Passed Tests in 3.31s)
 - ✅ RFC Syntax validation (valid, missing `@`, multiple `@`, length constraints, internal whitespace, malformed domain labels)
 - ✅ DNS resolution (MX records found, RFC 7505 Null MX, RFC 5321 fallback A/AAAA records, NXDOMAIN, timeout, SERVFAIL)
 - ✅ SMTP probing (recipient accepted 250, mailbox rejected 550, greylisting 451, catch-all detection, connection refused, port 25 timeout, Gmail timeout reported as Unknown with exact explanation)

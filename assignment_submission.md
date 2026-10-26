@@ -4,7 +4,8 @@
 **Candidate / Student Name:** [Student Name]  
 **Course / Module:** Advanced Web Software Engineering & Cloud Architectures  
 **Date of Submission:** October 26, 2026  
-**Operating Environment:** Linux (Render) / Windows / Python 3.11.10 / React 19 / Vite / Tailwind CSS  
+**Local Test Environment:** Windows / Python 3.14.0 / pytest 9.1.1  
+**Cloud Deployment Runtime:** Linux (Render) / Python 3.11.10 / Gunicorn 23.0  
 
 ---
 
@@ -40,13 +41,16 @@ MailCheck transparently clarifies that these results are **evidence-based classi
 - **Lucide Icons:** Semantic iconography for accessibility and visual clarity.
 
 ### Backend Architecture
-- **Python 3.11.10 & Flask 3.1:** Modular REST API with application factory pattern and blueprint-based routing.
+- **Flask 3.1 REST API:** Modular API using application factory pattern and blueprint-based routing.
+- **Cloud Deployment Runtime:** Python 3.11.10 on Linux (Render), configured via `.python-version` and `render.yaml`.
+- **Local Test Environment:** Python 3.14.0 on Windows (all 58 unit and integration tests executed under this runtime).
+- **WSGI Production Server:** Gunicorn 23.0 for production multi-worker deployment.
 - **SQLAlchemy 2.0:** Relational ORM supporting SQLite for local development and PostgreSQL support through `DATABASE_URL`.
-- **Gunicorn 23.0:** Production WSGI server for cloud deployment on Render.
 - **email-validator:** Strict RFC 5322 and RFC 6531 syntax compliance engine.
 - **dnspython:** Asynchronous/timeout-guarded DNS resolver handling MX lookups, RFC 7505 Null MX records, and RFC 5321 A/AAAA fallback routing.
 - **smtplib (Custom Probe):** Controlled recipient probe without message delivery or credential transmission, featuring catch-all domain detection.
 - **pytest:** Automated test runner with comprehensive mock coverage.
+
 
 ---
 
@@ -95,12 +99,12 @@ MailCheck transparently clarifies that these results are **evidence-based classi
 
 ## 6. Automated Testing Summary
 
-Testing was performed using `pytest` with network-isolated mocks for DNS and SMTP interactions:
+Testing was performed locally on Windows using `pytest 9.1.1` under `Python 3.14.0` with network-isolated mocks for DNS and socket layers:
 
 - **Total Test Cases Executed:** 58
 - **Passed:** 58
 - **Failed:** 0
-- **Execution Time:** ~3.24 seconds
+- **Execution Time:** 3.31 seconds
 
 | Test Module | Test Focus | Result |
 |---|---|---|
