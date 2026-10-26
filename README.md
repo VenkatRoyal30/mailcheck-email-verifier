@@ -207,12 +207,12 @@ Open your browser to: **`http://localhost:5173`** (API requests are automaticall
 The backend test suite uses `pytest` with network-isolated mocks for DNS and SMTP probing:
 
 ```powershell
-# Run all 56 backend tests with verbose output
+# Run all 58 backend tests with verbose output
 cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 .\venv\Scripts\pytest -v
 ```
 
-### Test Coverage Highlights (56 Passed Tests)
+### Test Coverage Highlights (58 Passed Tests)
 - ✅ RFC Syntax validation (valid, missing `@`, multiple `@`, length constraints, internal whitespace, malformed domain labels)
 - ✅ DNS resolution (MX records found, RFC 7505 Null MX, RFC 5321 fallback A/AAAA records, NXDOMAIN, timeout, SERVFAIL)
 - ✅ SMTP probing (recipient accepted 250, mailbox rejected 550, greylisting 451, catch-all detection, connection refused, port 25 timeout, Gmail timeout reported as Unknown with exact explanation)
@@ -223,7 +223,9 @@ cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 - ✅ SMTP 250 acceptance clearly notes routing evidence without claiming mailbox existence
 - ✅ REST API endpoints (`POST /api/verify`, `GET /api/history`, `DELETE /api/history/<batch_id>`, single-record deletion with count recalculation, CSV export, error handling)
 - ✅ Frontend SPA and static asset delivery (`GET /`, client-side routing, assets MIME types, `/api/*` unknown 404 JSON handling)
+- ✅ Cloud deployment entry points (root `wsgi:app` export and Render PostgreSQL `postgres://` URL scheme normalization)
 - ✅ Batch limits enforcement (maximum 100 addresses) and duplicate handling
+
 
 ---
 
