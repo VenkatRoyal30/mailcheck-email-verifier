@@ -89,7 +89,107 @@ In modern web applications and outbound communication campaigns, high email boun
 
 ---
 
-## 4. Database Schema & Data Retention
+## 4. SMTP Verification: Configuration, Operation, and Limitations
+
+MailCheck implements an optional, controlled SMTP recipient verification probe designed to gather transport-level deliverability evidence while strictly adhering to safety, network ethics, and privacy standards.
+
+### 4.1 Disabled by Default & Enabling Procedure
+To prevent network timeouts, provider anti-spam blacklisting, and false bounce classifications, **SMTP probing is disabled by default**.
+
+The procedure to enable SMTP probing can be performed via three verified mechanisms:
+1. **Frontend Web UI:** Check the **"Enable SMTP Mailbox Probing"** checkbox in the email batch submission form before clicking "Verify Addresses".
+2. **REST API Payload:** Include `"enable_smtp": true` in the JSON request body sent to `POST /api/verify`:
+   ```json
+   {
+     "emails": ["user@example.com"],
+     "enable_smtp": true
+   }
+   ```
+3. **Server Configuration / Environment Variable:** Set `ENABLE_SMTP_BY_DEFAULT=true` (or `1`, `yes`) in `backend/.env` or the hosting provider's environment variables to enable probing across all submitted batches by default.
+
+---
+
+### 4.2 Differences Between Verification Stages
+
+| Stage | Scope & Tooling | What It Evaluates | Network Impact |
+|---|---|---|---|
+| **Stage 1: Syntax Validation** | `email-validator` (RFC 5322/6531) | Local-part length ($\le 64$), total length ($\le 254$), valid `@` placement, legal characters, and domain label formatting. | Zero network traffic (local parsing). |
+| **Stage 2: DNS & Mail Routing** | `dnspython` (Authoritative DNS) | Resolves Mail Exchange (`MX`) records, flags RFC 7505 Null MX (`0 .`), and queries RFC 5321 Section 5.1 fallback host records (`A`/`AAAA`). | UDP/TCP queries to port 53. Confirms domain mail routing capability. |
+| **Stage 3: SMTP Recipient Probe** | `smtplib` (Optional TCP port 25) | Connects to the highest-priority MX host and queries recipient acceptance at the SMTP envelope layer. | Outbound TCP connection to port 25. |
+
+---
+
+### 4.3 SMTP Command Sequence & Privacy Guarantee
+When SMTP probing is active, MailCheck connects to the remote mail exchanger on TCP port 25 and executes a minimal, non-intrusive handshake:
+1. `EHLO mailcheck.local` (or `HELO`)
+2. `MAIL FROM:<verifier@mailcheck.local>`
+3. `RCPT TO:<target_recipient@domain>`
+4. *(Optional catch-all check)* `RCPT TO:<nonexistent-probe-uuid@domain>`
+5. `QUIT`
+
+> **Privacy & Non-Intrusive Operation Guarantee:**
+> - **No Message Body Sent:** The SMTP `DATA` command is **never** issued. No email message body, subject line, or message headers are ever created or transmitted.
+> - **No Passwords or Credentials Collected:** MailCheck does not request, store, or transmit mailbox passwords or authentication credentials (`AUTH LOGIN`, `AUTH PLAIN`).
+> - **Zero Inbound Spam:** The probe recipient never receives an incoming email message in their inbox.
+
+---
+
+### 4.4 Result Classification Logic
+
+| Classification | Conditions (SMTP Probing Enabled) | Diagnostic Explanation |
+|---|---|---|
+| **`Likely to be delivered`** | • Server returns `250 OK` for recipient probe.<br/>• If domain is catch-all, deliverable routing is confirmed while noting mailbox ambiguity. | *"Mail server accepted recipient probe (250). Evidence indicates active delivery routing; SMTP 250 acceptance is not proof of mailbox existence."* |
+| **`Likely to bounce`** | • Syntax failure (missing `@`, length violations).<br/>• Nonexistent domain (`NXDOMAIN`) or absent mail routes.<br/>• RFC 7505 Null MX record.<br/>• Definitive 5xx server rejection (`5.1.1`, `5.1.2`, "user unknown", "no such user", "mailbox not found", "does not exist", "invalid recipient"). | *"Recipient mailbox rejected by target mail server: Mailbox definitively rejected by server: 550 5.1.1 User unknown"* |
+| **`Unknown`** | • DNS timeout or `SERVFAIL`.<br/>• Outbound port 25 socket timeout or firewall block.<br/>• Connection refused (`ConnectionRefusedError`).<br/>• Temporary greylisting deferral (`421`, `450`, `451`, `452`).<br/>• Policy/relay rejection (`5.7.1 Relay access denied`, Spamhaus, DNSBL, SPF/DMARC).<br/>• Ambiguous generic 550 response without definitive mailbox keywords. | *"The mail server could not be reached for verification. This does not mean the email address is invalid."* or provider policy explanation. |
+
+---
+
+### 4.5 Why Ambiguous Responses & Port 25 Blocks Produce "Unknown"
+- **Network Reachability ≠ Mailbox Invalidity:** If a network firewall drops port 25 packets or the connection times out, this reflects local ISP or cloud firewall constraints rather than a nonexistent email address.
+- **Provider Anti-Scraping Policies:** Major providers deploy greylisting (`451`), IP reputation filters, and relay restrictions (`5.7.1`) to prevent unauthorized address harvesting. Because the mail server refuses to process the probe without established reputation, mailbox existence cannot be determined. Treating security deferrals as bounces would generate severe false positives.
+
+---
+
+### 4.6 SMTP Acceptance Does Not Guarantee Mailbox Existence
+- **Gateway Boundary Acceptance:** Many enterprise mail servers (Microsoft 365, Google Workspace, Proofpoint, Mimecast) accept all recipient addresses at the edge gateway to mitigate user-enumeration attacks. Invalid addresses are silently discarded or generate asynchronous Non-Delivery Reports (NDRs) post-handshake.
+- **Catch-All Routing:** Catch-all domains accept all recipient strings. MailCheck mitigates this by issuing a secondary probe with a random non-existent local-part (`nonexistent-probe-<random_uuid>@domain`). If accepted, the domain is flagged as catch-all.
+- **Principle:** SMTP `250 OK` acceptance is evidence of active mail routing, **never** definitive proof of an active personal mailbox.
+
+---
+
+### 4.7 Render Cloud Environment Port 25 Blocking
+- **Outbound TCP Port 25 Firewall:** Render (along with AWS, Azure, Google Cloud Platform, and DigitalOcean) blocks outbound traffic on TCP port 25 across all free and standard instances to prevent spam abuse.
+- **Expected Behavior on Render:** Enabling SMTP probing on Render will encounter connection timeouts (`socket.timeout`).
+- **Resilient Handling:** MailCheck handles this transparently. Outbound timeouts on Render are classified as **`Unknown`** with the clear diagnostic:  
+  *"The mail server could not be reached for verification. This does not mean the email address is invalid."*  
+  Port 25 blocking does not cause application errors or false bounce verdicts.
+
+---
+
+### 4.8 Automated Testing of SMTP Logic (Without Live Network Calls)
+The test suite isolates all SMTP network interaction using `unittest.mock.patch("smtplib.SMTP")` to ensure deterministic execution without external network dependence or provider rate-limiting:
+```powershell
+# Run all 16 dedicated SMTP unit tests
+cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
+.\venv\Scripts\pytest backend\tests\test_smtp.py -v
+```
+Verified test behaviors:
+- `test_smtp_accepted`: Verifies 250 acceptance message with routing disclosure.
+- `test_smtp_catch_all_detected`: Simulates dual 250 responses and confirms catch-all flagging.
+- `test_smtp_rejected_550` & `test_smtp_definitive_511_does_not_exist_is_fail`: Confirms definitive 5xx rejection is categorized as Fail without retry.
+- `test_smtp_greylisting_temporary_rejection`: Confirms 451 response returns `Unknown` without connection retry.
+- `test_smtp_port_25_blocked_timeout` & `test_smtp_gmail_timeout_reported_as_unknown`: Simulates `socket.timeout` and confirms `Unknown` with port blocked explanation.
+- `test_smtp_ambiguous_policy_rejection_is_unknown` & `test_smtp_relay_denied_is_unknown`: Confirms relay and policy blocks return `Unknown`.
+- `test_smtp_transient_timeout_then_retry_success`: Confirms at most 1 bounded retry for transient connection drops.
+
+---
+
+### 4.9 Respecting Provider Policies and Rate Limits
+Real-world bulk SMTP probing without sender reputation or throttling triggers immediate IP blacklisting and rate limiting from major providers (Google, Microsoft, Yahoo). Automated probing must always be used judiciously with bounded timeouts and minimal concurrency.
+
+---
+
+## 5. Database Schema & Data Retention
 
 The database layer utilizes SQLAlchemy models with foreign key cascade relationships.
 
@@ -125,7 +225,7 @@ The database layer utilizes SQLAlchemy models with foreign key cascade relations
 
 ---
 
-## 5. Quickstart Guide (Windows PowerShell)
+## 6. Quickstart Guide (Windows PowerShell)
 
 ### Prerequisites
 - Python 3.10+ (Deployed on Python 3.11.10)
@@ -205,17 +305,17 @@ Open your browser to: **`http://localhost:5173`** (API requests are automaticall
 
 ---
 
-## 6. Running Automated Tests
+## 7. Running Automated Tests
 
 The backend test suite uses `pytest` with network-isolated mocks for DNS and SMTP probing:
 
 ```powershell
-# Run all 58 backend tests with verbose output (executes in 3.31s under Python 3.14.0)
+# Run all 58 backend tests with verbose output (executes in 2.79s under Python 3.14.0)
 cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 .\venv\Scripts\pytest -v
 ```
 
-### Test Coverage Highlights (58 Passed Tests in 3.31s)
+### Test Coverage Highlights (58 Passed Tests in 2.79s)
 - ✅ RFC Syntax validation (valid, missing `@`, multiple `@`, length constraints, internal whitespace, malformed domain labels)
 - ✅ DNS resolution (MX records found, RFC 7505 Null MX, RFC 5321 fallback A/AAAA records, NXDOMAIN, timeout, SERVFAIL)
 - ✅ SMTP probing (recipient accepted 250, mailbox rejected 550, greylisting 451, catch-all detection, connection refused, port 25 timeout, Gmail timeout reported as Unknown with exact explanation)
@@ -232,7 +332,7 @@ cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 
 ---
 
-## 7. REST API Documentation
+## 8. REST API Documentation
 
 ### 1. Health Check
 - **`GET /api/health`**
@@ -317,7 +417,7 @@ cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 
 ---
 
-## 8. Public Deployment Guide (Render)
+## 9. Public Deployment Guide (Render)
 
 MailCheck is architected as a **unified single-service deployment** on [Render](https://render.com). The Python Flask application serves both the backend REST API (`/api/*`) and the compiled production React Single Page Application (`frontend/dist`), eliminating cross-origin CORS hurdles and keeping infrastructure footprint minimal on Render's free tier.
 
@@ -433,7 +533,7 @@ If you require verification history to persist permanently across restarts and r
 
 ---
 
-## 9. Limitations & Security Disclosures
+## 10. Limitations & Security Disclosures
 
 1. **Local & Cloud Environment Port 25 Blocking:**
    - Outbound connections on TCP Port 25 are blocked by default by almost all residential ISPs, corporate networks, and major cloud infrastructure providers (including AWS EC2, DigitalOcean, Microsoft Azure, Google Cloud Platform, and Linode/Akamai) to curb unauthorized bulk spam abuse.

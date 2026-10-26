@@ -11,7 +11,8 @@ from reportlab.platypus import (
     Table,
     TableStyle,
     KeepTogether,
-    HRFlowable
+    HRFlowable,
+    PageBreak
 )
 
 def build_pdf(output_filename="assignment_submission.pdf"):
@@ -184,8 +185,22 @@ def build_pdf(output_filename="assignment_submission.pdf"):
     ))
     story.append(Spacer(1, 6))
 
-    # 5. Persistent Storage & Privacy
-    story.append(Paragraph("5. Persistent Database Storage & Privacy Policy", h1_style))
+    # Page Break to start Page 2 cleanly
+    story.append(PageBreak())
+
+    # 5. SMTP Verification: Configuration, Operation, and Limitations
+    story.append(Paragraph("5. SMTP Verification: Configuration, Operation, and Limitations", h1_style))
+    story.append(Paragraph(
+        "• <b>Disabled by Default:</b> To prevent ISP/cloud connection timeouts and false bounce verdicts, SMTP probing is disabled by default. It can be enabled via the UI checkbox ('Enable SMTP Mailbox Probing'), API payload (<code>{\"enable_smtp\": true}</code>), or server env var (<code>ENABLE_SMTP_BY_DEFAULT=true</code>).<br/>"
+        "• <b>Command Sequence & Privacy Guarantee:</b> Connects to port 25 with <code>EHLO</code>/<code>MAIL FROM</code>/<code>RCPT TO</code>/<code>QUIT</code>. The <code>DATA</code> command is never issued, no message body is sent, no user credentials are exchanged, and target recipients never receive inbox messages.<br/>"
+        "• <b>Outcome Classification:</b> <code>Likely to be delivered</code> is returned for SMTP 250 OK (indicates delivery routing evidence, not proof of mailbox existence). <code>Likely to bounce</code> is returned for definitive 5xx rejections (e.g. 5.1.1 User unknown). <code>Unknown</code> is returned for timeouts, connection refused, 451 greylisting, relay denied (5.7.1), and ambiguous 550 codes.<br/>"
+        "• <b>Catch-All & Cloud Port 25 Handling:</b> Catch-all domains are identified by probing a random nonexistent UUID. On cloud platforms like Render where outbound port 25 is blocked, connections encounter socket timeouts and are transparently reported as 'Unknown' with the exact diagnostic: <i>'The mail server could not be reached for verification. This does not mean the email address is invalid.'</i>",
+        body_style
+    ))
+    story.append(Spacer(1, 6))
+
+    # 6. Persistent Storage & Privacy
+    story.append(Paragraph("6. Persistent Database Storage & Privacy Policy", h1_style))
     story.append(Paragraph(
         "• <b>Entities:</b> <code>VerificationBatch</code> (UUID, creation timestamp, total/delivered/bounce/unknown counts, SMTP mode) and <code>EmailVerification</code> (UUID, batch ID, raw email, normalized email, status, diagnostics).<br/>"
         "• <b>Data Retention & Deletion:</b> 30-day configurable lifecycle. Provides full user controls to delete individual records (with batch count recalculation) or purge entire batches.<br/>"
@@ -194,8 +209,8 @@ def build_pdf(output_filename="assignment_submission.pdf"):
     ))
     story.append(Spacer(1, 6))
 
-    # 6. Testing Summary Table
-    story.append(Paragraph("6. Automated Testing Summary (Actual Test Execution)", h1_style))
+    # 7. Testing Summary Table
+    story.append(Paragraph("7. Automated Testing Summary (Actual Test Execution)", h1_style))
     story.append(Paragraph("All 58 backend and integration tests executed and passed via pytest under Python 3.14.0 with mocked DNS and socket layers:", body_style))
 
     test_table_data = [
@@ -207,7 +222,7 @@ def build_pdf(output_filename="assignment_submission.pdf"):
         [Paragraph("test_api_verify.py", table_cell_style), Paragraph("POST /api/verify, input validation, multiline input, batch limits, database persistence", table_cell_style), Paragraph("6", table_cell_style), Paragraph("6 PASSED", table_cell_style)],
         [Paragraph("test_api_history.py", table_cell_style), Paragraph("GET /api/history, batch detail, single record deletion with count recalculation, CSV export", table_cell_style), Paragraph("1", table_cell_style), Paragraph("1 PASSED", table_cell_style)],
         [Paragraph("test_frontend_routes.py", table_cell_style), Paragraph("GET /, SPA client routes, asset delivery, unknown /api 404 JSON, root WSGI app export, PostgreSQL URL normalization", table_cell_style), Paragraph("7", table_cell_style), Paragraph("7 PASSED", table_cell_style)],
-        [Paragraph("<b>TOTALS</b>", table_cell_style), Paragraph("<b>Comprehensive test suite with 100% pass rate in 3.31s</b>", table_cell_style), Paragraph("<b>58</b>", table_cell_style), Paragraph("<b>58 PASSED</b>", table_cell_style)],
+        [Paragraph("<b>TOTALS</b>", table_cell_style), Paragraph("<b>Comprehensive test suite with 100% pass rate in 2.79s</b>", table_cell_style), Paragraph("<b>58</b>", table_cell_style), Paragraph("<b>58 PASSED</b>", table_cell_style)],
     ]
 
     test_table = Table(test_table_data, colWidths=[100, 290, 50, 90])

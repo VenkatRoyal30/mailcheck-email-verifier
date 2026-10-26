@@ -83,7 +83,68 @@ MailCheck transparently clarifies that these results are **evidence-based classi
 
 ---
 
-## 5. Database Storage & Privacy Architecture
+## 5. SMTP Verification: Configuration, Operation, and Limitations
+
+MailCheck includes an optional, controlled SMTP recipient verification probe designed to acquire transport-level deliverability signals while upholding strict network safety, privacy, and provider policy standards.
+
+### 5.1 Disabled by Default & Enabling Procedure
+To prevent connection timeouts, provider blacklisting, and false bounce classifications, **SMTP probing is disabled by default**. Probing can be enabled through three verified mechanisms:
+1. **Frontend Web UI:** Check the **"Enable SMTP Mailbox Probing"** checkbox in the email input form before submitting.
+2. **REST API Payload:** Pass `"enable_smtp": true` in the JSON request body sent to `POST /api/verify`.
+3. **Server Configuration:** Set `ENABLE_SMTP_BY_DEFAULT=true` in `backend/.env` or hosting environment variables to default-enable probing across all batches.
+
+### 5.2 Differences Across Verification Stages
+- **Stage 1: RFC Syntax Validation:** Uses `email-validator` to evaluate local-part length ($\le 64$), total length ($\le 254$), '@' separators, and legal characters. Requires zero network queries.
+- **Stage 2: DNS & Mail Routing:** Uses `dnspython` to resolve MX records, RFC 7505 Null MX records (`0 .`), and RFC 5321 fallback `A`/`AAAA` records over UDP/TCP port 53. Confirms domain mail routing capability.
+- **Stage 3: SMTP Recipient Probing:** Uses `smtplib` to connect to the target MX host on TCP port 25 and test envelope acceptance.
+
+### 5.3 SMTP Command Sequence & Privacy Guarantees
+When active, MailCheck executes a non-intrusive handshake on port 25:
+1. `EHLO mailcheck.local` (or `HELO`)
+2. `MAIL FROM:<verifier@mailcheck.local>`
+3. `RCPT TO:<target_recipient@domain>`
+4. *(Optional catch-all verification)* `RCPT TO:<nonexistent-probe-uuid@domain>`
+5. `QUIT`
+
+> **Non-Intrusive Privacy Guarantee:**
+> - **Zero Message Bodies:** The SMTP `DATA` command is **never** issued. No email body, subject line, or headers are ever sent.
+> - **No Password or Credential Exchange:** MailCheck never requests, collects, or transmits user mailbox credentials (`AUTH LOGIN`, `AUTH PLAIN`).
+> - **No Inbox Delivery:** The target recipient never receives any email message in their inbox.
+
+### 5.4 Result Classification Logic
+- **`Likely to be delivered`**: The mail server returns `250 OK` for the recipient probe. If catch-all is detected, delivery routing is confirmed while flagging mailbox ambiguity. The diagnostic clearly states that `250 OK` indicates routing evidence, not absolute proof of mailbox existence.
+- **`Likely to bounce`**: RFC syntax violations, unresolvable domains (`NXDOMAIN`), RFC 7505 Null MX records, or definitive 5xx server rejections (`5.1.1`, `5.1.2`, "user unknown", "no such user", "mailbox not found", "does not exist", "invalid recipient").
+- **`Unknown`**: DNS timeouts/`SERVFAIL`, outbound port 25 connection timeouts/firewall drops, connection refused (`ConnectionRefusedError`), temporary greylisting (`421`, `450`, `451`, `452`), relay/policy rejections (`5.7.1 Relay access denied`, Spamhaus, DNSBL), or generic 550 codes lacking definitive mailbox non-existence keywords.
+
+### 5.5 Ambiguous Responses & Port 25 Timeout Rationale
+- **Network Reachability vs. Mailbox Validity:** Port 25 timeouts reflect residential ISP or cloud platform firewall policies rather than nonexistent addresses.
+- **Anti-Scraping & Greylisting:** Mailbox providers employ greylisting (`451`) and IP reputation filters to defend against address harvesting. Classifying security deflections as bounces would generate high rates of false positives.
+
+### 5.6 SMTP Acceptance Does Not Guarantee Mailbox Existence
+- **Gateway Acceptance:** Major services (Microsoft 365, Google Workspace, Proofpoint, Mimecast) accept all inbound recipients at edge gateways to counter user-enumeration attacks, discarding invalid recipients or dispatching asynchronous NDRs later.
+- **Catch-All Routing:** Catch-all domains accept all addresses. MailCheck identifies catch-all behavior by issuing a secondary probe with a random non-existent UUID; if accepted, the domain is flagged as catch-all.
+- **Delivery Principle:** SMTP `250 OK` represents active transport routing capability, **never** guaranteed proof of an individual monitored mailbox.
+
+### 5.7 Port 25 Blocking on Cloud Environments (Render)
+- Cloud providers including Render, AWS, Azure, and GCP block outbound TCP port 25 traffic by default to prevent spam.
+- Enabling SMTP probing on Render results in a socket timeout (`socket.timeout`).
+- MailCheck handles this gracefully: addresses are classified as **`Unknown`** with the transparent diagnostic:  
+  *"The mail server could not be reached for verification. This does not mean the email address is invalid."*  
+  Port 25 blocking never triggers application errors or false bounce verdicts.
+
+### 5.8 Automated Testing of SMTP Verification
+All 16 SMTP unit tests isolate network operations using `unittest.mock.patch("smtplib.SMTP")`, ensuring fast, deterministic testing without live network traffic or rate-limiting:
+```powershell
+.\venv\Scripts\pytest backend\tests\test_smtp.py -v
+```
+Tests cover recipient acceptance (250), catch-all detection, definitive rejection (5.1.1), greylisting (451), port 25 timeout/block, relay/policy blocks (`5.7.1`), and transient retry mechanisms.
+
+### 5.9 Provider Policy Considerations
+Bulk unthrottled SMTP probing without established IP reputation violates provider acceptable use policies and triggers immediate IP blacklisting. Verification systems must apply bounded timeouts, minimal concurrency, and conservative retry policies.
+
+---
+
+## 6. Database Storage & Privacy Architecture
 
 ### Entity Models
 - **`VerificationBatch`**: Unique UUID, submission timestamp (UTC), total address count, delivered count, bounce count, unknown count, and SMTP mode flag.
@@ -97,14 +158,14 @@ MailCheck transparently clarifies that these results are **evidence-based classi
 
 ---
 
-## 6. Automated Testing Summary
+## 7. Automated Testing Summary
 
 Testing was performed locally on Windows using `pytest 9.1.1` under `Python 3.14.0` with network-isolated mocks for DNS and socket layers:
 
 - **Total Test Cases Executed:** 58
 - **Passed:** 58
 - **Failed:** 0
-- **Execution Time:** 3.31 seconds
+- **Execution Time:** 2.79 seconds
 
 | Test Module | Test Focus | Result |
 |---|---|---|
@@ -123,7 +184,7 @@ Testing was performed locally on Windows using `pytest 9.1.1` under `Python 3.14
 
 ---
 
-## 7. Instructions for Local Execution
+## 8. Instructions for Local Execution
 
 1. Start the Flask backend server:
    ```powershell
