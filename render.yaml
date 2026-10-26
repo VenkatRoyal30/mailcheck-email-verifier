@@ -1,0 +1,42 @@
+# ==============================================================================
+# Render Blueprint Specification for MailCheck Bulk Email Verification SaaS
+# Docs: https://render.com/docs/blueprint-spec
+# ==============================================================================
+services:
+  - type: web
+    name: mailcheck-email-verifier
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 wsgi:app"
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.10
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: MAX_BATCH_SIZE
+        value: "100"
+      - key: DNS_TIMEOUT
+        value: "3.0"
+      - key: SMTP_TIMEOUT
+        value: "5.0"
+      - key: ENABLE_SMTP_BY_DEFAULT
+        value: "false"
+      - key: RETENTION_DAYS
+        value: "30"
+      - key: CORS_ORIGINS
+        value: "*"
+      # Optional: To attach a persistent PostgreSQL database, uncomment below or set DATABASE_URL
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: mailcheck-db
+      #     property: connectionString
+
+# databases:
+#   - name: mailcheck-db
+#     plan: free
+#     region: oregon

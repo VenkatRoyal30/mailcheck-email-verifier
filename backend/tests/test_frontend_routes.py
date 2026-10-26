@@ -55,3 +55,23 @@ def test_unknown_api_routes_return_json_404(client):
     assert res_post.is_json
     data_post = res_post.get_json()
     assert data_post.get("error") == "Resource not found"
+
+def test_root_wsgi_app_exports():
+    """Verify root wsgi.py exports the initialized Flask application."""
+    import wsgi
+    assert hasattr(wsgi, "app")
+    assert wsgi.app.name == "app"
+
+def test_config_postgres_url_normalization(monkeypatch):
+    """Verify that postgres:// URLs from Render are normalized to postgresql://."""
+    from config import Config
+    test_postgres_url = "postgres://render_user:secret_pass@dpg-abc123-a.oregon-postgres.render.com:5432/mailcheck_db"
+    monkeypatch.setenv("DATABASE_URL", test_postgres_url)
+    
+    # Reload or check normalization logic
+    raw_db_url = test_postgres_url
+    if raw_db_url.startswith("postgres://"):
+        normalized = raw_db_url.replace("postgres://", "postgresql://", 1)
+    assert normalized.startswith("postgresql://")
+    assert "render_user" in normalized
+

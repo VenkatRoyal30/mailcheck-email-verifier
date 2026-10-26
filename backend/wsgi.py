@@ -13,7 +13,8 @@ app = create_app(Config)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    host = os.environ.get("HOST", "127.0.0.1")
+    host = os.environ.get("HOST", "0.0.0.0")
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
     print(f"Starting MailCheck Flask API server on http://{host}:{port} ...")
     app.run(host=host, port=port, debug=debug)
+

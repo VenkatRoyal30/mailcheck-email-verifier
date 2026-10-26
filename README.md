@@ -310,20 +310,119 @@ cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 
 ---
 
-## 8. Deployment Guide
+## 8. Public Deployment Guide (Render)
 
-### Production Configuration
-1. **Database:** Set `DATABASE_URL` to your production PostgreSQL connection string (e.g. `postgresql://user:password@host:5432/mailcheck_db`).
-2. **Secrets:** Generate a strong secret key for `SECRET_KEY`.
-3. **CORS:** Restrict `CORS_ORIGINS` to your registered domain origin.
-4. **WSGI Server:** In Linux production environments, run via Gunicorn:
-   ```bash
-   gunicorn -w 4 -b 0.0.0.0:5000 wsgi:app
-   ```
-   Or on Windows Server via Waitress:
-   ```powershell
-   waitress-serve --port=5000 wsgi:app
-   ```
+MailCheck is architected as a **unified single-service deployment** on [Render](https://render.com). The Python Flask application serves both the backend REST API (`/api/*`) and the compiled production React Single Page Application (`frontend/dist`), eliminating cross-origin CORS hurdles and keeping infrastructure footprint minimal on Render's free tier.
+
+---
+
+### Render Service Specifications
+
+| Setting | Value | Description |
+|---|---|---|
+| **Service Type** | **Web Service** | Hosted Linux container |
+| **Runtime** | **Python 3** | Uses `.python-version` (`3.11.10`) |
+| **Branch** | `main` | Production deployment branch |
+| **Build Command** | `./build.sh` | Upgrades pip, installs Python requirements, builds React SPA |
+| **Start Command** | `gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 wsgi:app` | Production WSGI server binding to Render's dynamic `$PORT` |
+| **Health Check Path** | `/api/health` | Automated zero-downtime health verification (HTTP 200) |
+| **Plan** | **Free** | Zero hosting costs |
+
+---
+
+### Step-by-Step Manual Deployment on Render
+
+1. **Sign in to Render:**
+   - Navigate to [https://dashboard.render.com](https://dashboard.render.com) and log in with your GitHub account (**`VenkatRoyal30`**).
+
+2. **Create New Web Service:**
+   - Click the **New +** button in the top navigation bar and select **Web Service**.
+   - Select **Build and deploy from a Git repository**.
+   - Search for or select your repository: **`VenkatRoyal30/mailcheck-email-verifier`**.
+   - Click **Connect**.
+
+3. **Configure the Web Service Settings:**
+   - **Name:** `mailcheck-email-verifier` (or your preferred service name)
+   - **Region:** `Oregon (US West)` (or closest region)
+   - **Branch:** `main`
+   - **Root Directory:** *(leave blank — runs from repository root)*
+   - **Runtime:** `Python 3`
+   - **Build Command:** 
+     ```bash
+     ./build.sh
+     ```
+     *(Alternatively: `pip install -r backend/requirements.txt && cd frontend && npm install && npm run build && cd ..`)*
+   - **Start Command:** 
+     ```bash
+     gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 wsgi:app
+     ```
+   - **Instance Type:** `Free`
+
+4. **Configure Advanced Settings:**
+   - Expand **Advanced**.
+   - **Health Check Path:** Enter `/api/health`.
+
+5. **Set Environment Variables:**
+   Under **Environment Variables**, add the following keys:
+   | Key | Value | Purpose |
+   |---|---|---|
+   | `PYTHON_VERSION` | `3.11.10` | Enforces compatible Python version |
+   | `SECRET_KEY` | *(Click "Generate" or enter random string)* | Secures session cookies and CSRF |
+   | `FLASK_DEBUG` | `0` | Disables debug mode in production |
+   | `ENABLE_SMTP_BY_DEFAULT` | `false` | Keeps SMTP probing disabled by default |
+   | `MAX_BATCH_SIZE` | `100` | Limits batch size to 100 emails |
+   | `DNS_TIMEOUT` | `3.0` | Maximum seconds for DNS MX resolution |
+   | `SMTP_TIMEOUT` | `5.0` | Bounded socket timeout for SMTP probes |
+   | `RETENTION_DAYS` | `30` | Audit retention window |
+   | `CORS_ORIGINS` | `*` | Unified origin allows default routing |
+
+6. **Deploy the Web Service:**
+   - Click **Create Web Service**.
+   - Render will clone the repository, run `./build.sh` (installing Python packages and compiling the Vite React frontend into `frontend/dist`), and launch Gunicorn.
+   - Once the build succeeds and `/api/health` responds with `200 OK`, Render will mark the service as **Live** and provide your public URL:
+     `https://mailcheck-email-verifier.onrender.com`
+
+---
+
+### Alternative: Automated Blueprint Deployment (`render.yaml`)
+
+This repository includes a [`render.yaml`](./render.yaml) blueprint specification. To deploy using the Blueprint feature:
+1. In the Render Dashboard, click **New +** -> **Blueprint**.
+2. Connect `VenkatRoyal30/mailcheck-email-verifier`.
+3. Render automatically reads `render.yaml`, preconfigures all build commands, start commands, health checks, and environment variables.
+4. Click **Apply** to provision and deploy.
+
+---
+
+### Database Persistence: SQLite vs. PostgreSQL on Render
+
+#### Option A: Built-in SQLite (Default, Zero-Setup)
+- If `DATABASE_URL` is omitted, MailCheck automatically initializes a local SQLite database (`backend/mailcheck.db`).
+- **Limitation:** On Render's Free tier, container disk storage is **ephemeral**. When the service sleeps after 15 minutes of inactivity or redeploys, SQLite database records are reset to initial state.
+- **Suitability:** Perfect for grading, assignment demonstration, and real-time live email verification.
+
+#### Option B: Render Managed PostgreSQL (Recommended for Persistent History)
+If you require verification history to persist permanently across restarts and redeployments:
+1. In the Render Dashboard, click **New +** -> **PostgreSQL**.
+2. Set **Name:** `mailcheck-db`, **Database:** `mailcheck`, **Plan:** `Free`.
+3. Click **Create Database**.
+4. Once provisioned, scroll to **Connections** and copy the **Internal Database URL** (e.g. `postgres://mailcheck_user:password@dpg-xxx-a:5432/mailcheck`).
+5. Open your `mailcheck-email-verifier` Web Service -> **Environment** -> **Add Environment Variable**:
+   - **Key:** `DATABASE_URL`
+   - **Value:** *(paste the Internal Database URL)*
+6. Click **Save Changes**. MailCheck automatically detects PostgreSQL, converts `postgres://` to `postgresql://` for SQLAlchemy compatibility, and initializes schema tables via `psycopg2-binary` on startup without requiring manual migrations.
+
+---
+
+### Render Port 25 & Network Limitations
+
+1. **Outbound TCP Port 25 Firewalls:**
+   - Render's infrastructure blocks outbound traffic on TCP port 25 to prevent spam abuse.
+   - When SMTP probing is toggled on in the UI, connections to remote mail servers on port 25 will time out.
+   - MailCheck handles this gracefully and transparently: when port 25 times out, the address status is classified as **`Unknown`** with the clear diagnostic:  
+     *"The mail server could not be reached for verification. This does not mean the email address is invalid."*
+   - Network timeouts are never classified as bounces.
+
 
 ---
 
