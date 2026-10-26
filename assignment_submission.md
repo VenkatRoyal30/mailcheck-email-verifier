@@ -3,18 +3,17 @@
 **Project Title:** MailCheck – Bulk Email Verification Tool  
 **Candidate / Student Name:** [Student Name]  
 **Course / Module:** Advanced Web Software Engineering & Cloud Architectures  
-**Date of Submission:** October 25, 2026  
-**Operating Environment:** Windows / Python 3.14 / React 19 / Vite / Tailwind CSS  
+**Date of Submission:** October 26, 2026  
+**Operating Environment:** Linux (Render) / Windows / Python 3.11.10 / React 19 / Vite / Tailwind CSS  
 
 ---
 
-## 1. Project Links
+## 1. Project Links & Publication Status
 
-- **Live Deployment URL:**  
-  `[PLACEHOLDER: Project is prepared for deployment. Live URL will be configured upon production hosting approval.]`
+- **Live Website URL:** https://mailcheck-email-verifier.onrender.com
+- **GitHub Repository URL:** https://github.com/VenkatRoyal30/mailcheck-email-verifier
 
-- **GitHub Repository URL:**  
-  `[PLACEHOLDER: Project is prepared for publication. Repository URL will be configured upon external Git push approval.]`
+**Publication Status:** Source code published on GitHub and application deployed on Render.
 
 ---
 
@@ -41,8 +40,9 @@ MailCheck transparently clarifies that these results are **evidence-based classi
 - **Lucide Icons:** Semantic iconography for accessibility and visual clarity.
 
 ### Backend Architecture
-- **Python 3.14 & Flask 3.1:** Modular REST API with application factory pattern and blueprint-based routing.
-- **SQLAlchemy 2.0:** Relational ORM supporting SQLite for local development and PostgreSQL for production deployments.
+- **Python 3.11.10 & Flask 3.1:** Modular REST API with application factory pattern and blueprint-based routing.
+- **SQLAlchemy 2.0:** Relational ORM supporting SQLite for local development and PostgreSQL support through `DATABASE_URL`.
+- **Gunicorn 23.0:** Production WSGI server for cloud deployment on Render.
 - **email-validator:** Strict RFC 5322 and RFC 6531 syntax compliance engine.
 - **dnspython:** Asynchronous/timeout-guarded DNS resolver handling MX lookups, RFC 7505 Null MX records, and RFC 5321 A/AAAA fallback routing.
 - **smtplib (Custom Probe):** Controlled recipient probe without message delivery or credential transmission, featuring catch-all domain detection.
@@ -97,10 +97,10 @@ MailCheck transparently clarifies that these results are **evidence-based classi
 
 Testing was performed using `pytest` with network-isolated mocks for DNS and SMTP interactions:
 
-- **Total Test Cases Executed:** 56
-- **Passed:** 56
+- **Total Test Cases Executed:** 58
+- **Passed:** 58
 - **Failed:** 0
-- **Execution Time:** ~3.38 seconds
+- **Execution Time:** ~3.24 seconds
 
 | Test Module | Test Focus | Result |
 |---|---|---|
@@ -110,7 +110,7 @@ Testing was performed using `pytest` with network-isolated mocks for DNS and SMT
 | `test_pipeline.py` | Pipeline stage transitions, skipping on syntax failure, default disabled SMTP, batch duplicate detection, batch limit, working-format Gmail SMTP timeout handling with exact explanation, SMTP 250 routing disclosure, timeout followed by acceptance regression, acceptance followed by timeout regression, acceptance followed by bounce regression | **PASS (11/11)** |
 | `test_api_verify.py` | POST `/api/verify`, validation errors, multiline input, batch limits, database persistence | **PASS (6/6)** |
 | `test_api_history.py` | GET `/api/history`, GET `/api/history/<id>`, DELETE record, DELETE batch, clear history, CSV export | **PASS (1/1)** |
-| `test_frontend_routes.py` | GET `/`, SPA client routes, asset delivery with proper MIME types, unknown `/api` routes return 404 JSON | **PASS (5/5)** |
+| `test_frontend_routes.py` | GET `/`, SPA client routes, asset delivery with proper MIME types, unknown `/api` routes return 404 JSON, root WSGI app export, PostgreSQL URL normalization | **PASS (7/7)** |
 
 ### Frontend Production Build Verification
 - **Command:** `npm run build` (`tsc && vite build`)

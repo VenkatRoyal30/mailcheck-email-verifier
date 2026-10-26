@@ -136,17 +136,19 @@ def build_pdf(output_filename="assignment_submission.pdf"):
     meta_text = (
         "<b>Project Title:</b> MailCheck – Bulk Email Verification Tool &nbsp;|&nbsp; "
         "<b>Framework:</b> React 19 + Flask 3.1 + SQLAlchemy<br/>"
+        "<b>Runtime Environment:</b> Linux (Render) / Windows &nbsp;|&nbsp; <b>Python:</b> 3.11.10<br/>"
         "<b>Classification Standard:</b> RFC 5321 / RFC 5322 / RFC 7505 &nbsp;|&nbsp; "
-        "<b>Date:</b> October 2026 &nbsp;|&nbsp; <b>Status:</b> Fully Implemented & Tested"
+        "<b>Status:</b> Fully Implemented, Tested & Deployed"
     )
     story.append(Paragraph(meta_text, meta_style))
     story.append(Spacer(1, 8))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e2e8f0"), spaceAfter=10))
 
-    # 1. Project Links & Placeholders
+    # 1. Project Links & Publication Status
     story.append(Paragraph("1. Project Links & Publication Status", h1_style))
-    story.append(Paragraph("• <b>Live Website URL:</b> <code>[PLACEHOLDER: Project is prepared for deployment. Live URL will be configured upon production hosting approval.]</code>", bullet_style))
-    story.append(Paragraph("• <b>GitHub Repository URL:</b> <code>[PLACEHOLDER: Project is prepared for publication. Repository URL will be configured upon external Git push approval.]</code>", bullet_style))
+    story.append(Paragraph("• <b>Live Website URL:</b> <font color=\"#2563eb\"><a href=\"https://mailcheck-email-verifier.onrender.com\"><u>https://mailcheck-email-verifier.onrender.com</u></a></font>", bullet_style))
+    story.append(Paragraph("• <b>GitHub Repository URL:</b> <font color=\"#2563eb\"><a href=\"https://github.com/VenkatRoyal30/mailcheck-email-verifier\"><u>https://github.com/VenkatRoyal30/mailcheck-email-verifier</u></a></font>", bullet_style))
+    story.append(Paragraph("• <b>Publication Status:</b> Source code published on GitHub and application deployed on Render.", bullet_style))
     story.append(Spacer(1, 6))
 
     # 2. Problem Statement & Objectives
@@ -166,8 +168,8 @@ def build_pdf(output_filename="assignment_submission.pdf"):
     # 3. Technology Stack
     story.append(Paragraph("3. Technology Stack", h1_style))
     story.append(Paragraph("• <b>Frontend:</b> React 19, TypeScript, Vite 6, Tailwind CSS (light/dark theme), Lucide Icons, Typed REST API Client.", bullet_style))
-    story.append(Paragraph("• <b>Backend:</b> Python 3.14, Flask 3.1 REST API, email-validator (RFC 5322/6531), dnspython (MX/Null MX/Fallback), pytest.", bullet_style))
-    story.append(Paragraph("• <b>Database:</b> SQLAlchemy 2.0 ORM with SQLite for local development and PostgreSQL support via <code>DATABASE_URL</code>.", bullet_style))
+    story.append(Paragraph("• <b>Backend:</b> Python 3.11.10, Flask 3.1 REST API, Gunicorn 23.0 WSGI Server, email-validator (RFC 5322/6531), dnspython (MX/Null MX/Fallback), pytest.", bullet_style))
+    story.append(Paragraph("• <b>Database:</b> SQLAlchemy 2.0 ORM with SQLite for local development and PostgreSQL support through <code>DATABASE_URL</code>.", bullet_style))
     story.append(Spacer(1, 6))
 
     # 4. Verification Workflow
@@ -192,18 +194,18 @@ def build_pdf(output_filename="assignment_submission.pdf"):
 
     # 6. Testing Summary Table
     story.append(Paragraph("6. Automated Testing Summary (Actual Test Execution)", h1_style))
-    story.append(Paragraph("All 47 backend and integration tests executed and passed via pytest with mocked DNS and SMTP layers:", body_style))
+    story.append(Paragraph("All 58 backend and integration tests executed and passed via pytest with mocked DNS and socket layers:", body_style))
 
     test_table_data = [
         [Paragraph("Test Module", table_header_style), Paragraph("Scope & Test Focus", table_header_style), Paragraph("Tests", table_header_style), Paragraph("Outcome", table_header_style)],
         [Paragraph("test_syntax.py", table_cell_style), Paragraph("RFC syntax validation, separators, length constraints, illegal whitespace, malformed labels", table_cell_style), Paragraph("10", table_cell_style), Paragraph("10 PASSED", table_cell_style)],
         [Paragraph("test_dns.py", table_cell_style), Paragraph("MX records, RFC 7505 Null MX, RFC 5321 A/AAAA fallback, NXDOMAIN, DNS timeouts, SERVFAIL", table_cell_style), Paragraph("7", table_cell_style), Paragraph("7 PASSED", table_cell_style)],
-        [Paragraph("test_smtp.py", table_cell_style), Paragraph("Probe, catch-all detection, 550 rejection, 451 greylisting, port 25 timeout, Gmail timeout, policy/relay Unknown, definitive 5.1.1", table_cell_style), Paragraph("10", table_cell_style), Paragraph("10 PASSED", table_cell_style)],
-        [Paragraph("test_pipeline.py", table_cell_style), Paragraph("Pipeline stage skipping, default disabled SMTP, batch duplicates, limit, working-format Gmail timeout handling", table_cell_style), Paragraph("8", table_cell_style), Paragraph("8 PASSED", table_cell_style)],
+        [Paragraph("test_smtp.py", table_cell_style), Paragraph("Probe, catch-all detection, 550 rejection, 451 greylisting, port 25 timeout, Gmail timeout, policy/relay Unknown, definitive 5.1.1", table_cell_style), Paragraph("16", table_cell_style), Paragraph("16 PASSED", table_cell_style)],
+        [Paragraph("test_pipeline.py", table_cell_style), Paragraph("Pipeline stage skipping, default disabled SMTP, batch duplicates, limit, working-format Gmail timeout, regression suite", table_cell_style), Paragraph("11", table_cell_style), Paragraph("11 PASSED", table_cell_style)],
         [Paragraph("test_api_verify.py", table_cell_style), Paragraph("POST /api/verify, input validation, multiline input, batch limits, database persistence", table_cell_style), Paragraph("6", table_cell_style), Paragraph("6 PASSED", table_cell_style)],
         [Paragraph("test_api_history.py", table_cell_style), Paragraph("GET /api/history, batch detail, single record deletion with count recalculation, CSV export", table_cell_style), Paragraph("1", table_cell_style), Paragraph("1 PASSED", table_cell_style)],
-        [Paragraph("test_frontend_routes.py", table_cell_style), Paragraph("GET /, SPA client routes, asset delivery with proper MIME types, unknown /api routes return 404 JSON", table_cell_style), Paragraph("5", table_cell_style), Paragraph("5 PASSED", table_cell_style)],
-        [Paragraph("<b>TOTALS</b>", table_cell_style), Paragraph("<b>Comprehensive test suite with 100% pass rate in 3.48s</b>", table_cell_style), Paragraph("<b>47</b>", table_cell_style), Paragraph("<b>47 PASSED</b>", table_cell_style)],
+        [Paragraph("test_frontend_routes.py", table_cell_style), Paragraph("GET /, SPA client routes, asset delivery, unknown /api 404 JSON, root WSGI app export, PostgreSQL URL normalization", table_cell_style), Paragraph("7", table_cell_style), Paragraph("7 PASSED", table_cell_style)],
+        [Paragraph("<b>TOTALS</b>", table_cell_style), Paragraph("<b>Comprehensive test suite with 100% pass rate in 3.24s</b>", table_cell_style), Paragraph("<b>58</b>", table_cell_style), Paragraph("<b>58 PASSED</b>", table_cell_style)],
     ]
 
     test_table = Table(test_table_data, colWidths=[100, 290, 50, 90])
@@ -216,14 +218,15 @@ def build_pdf(output_filename="assignment_submission.pdf"):
         ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f8fafc")),
         ("BACKGROUND", (0, 3), (-1, 3), colors.HexColor("#f8fafc")),
         ("BACKGROUND", (0, 5), (-1, 5), colors.HexColor("#f8fafc")),
-        ("BACKGROUND", (0, 7), (-1, 7), colors.HexColor("#e0e7ff")),
+        ("BACKGROUND", (0, 7), (-1, 7), colors.HexColor("#f8fafc")),
+        ("BACKGROUND", (0, 8), (-1, 8), colors.HexColor("#e0e7ff")),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ("TOPPADDING", (0, 0), (-1, -1), 3),
     ]))
     story.append(test_table)
 
     story.append(Spacer(1, 8))
-    story.append(Paragraph("<b>Frontend Production Build:</b> <code>npm run build</code> succeeded in 27.44s with 0 TypeScript errors. Output generated in <code>frontend/dist/</code>.", body_style))
+    story.append(Paragraph("<b>Frontend Production Build:</b> <code>npm run build</code> succeeded with 0 TypeScript errors. Output generated in <code>frontend/dist/</code>.", body_style))
 
     # Build PDF
     doc.build(story)

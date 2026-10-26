@@ -33,12 +33,13 @@ In modern web applications and outbound communication campaigns, high email boun
 - **Client Architecture:** Typed REST API client, zero unauthenticated data leaks
 
 ### Backend
-- **Framework:** Python 3.14 / Flask 3.1 REST API
+- **Framework:** Python 3.11.10 / Flask 3.1 REST API
 - **Syntax RFC Engine:** `email-validator` (RFC 5322 & RFC 6531 compliance)
 - **DNS Mail Routing Engine:** `dnspython` (MX records, RFC 7505 Null MX, RFC 5321 Fallback)
 - **Testing:** `pytest` (mocked DNS and socket layers)
 - **ORM & Data Layer:** SQLAlchemy 2.0 (SQLite for local development, PostgreSQL ready for production)
 - **Reporting:** ReportLab PDF Generation
+
 
 ---
 
@@ -124,8 +125,9 @@ The database layer utilizes SQLAlchemy models with foreign key cascade relations
 ## 5. Quickstart Guide (Windows PowerShell)
 
 ### Prerequisites
-- Python 3.10+ (Tested on Python 3.14)
+- Python 3.10+ (Deployed on Python 3.11.10)
 - Node.js 18+ and npm
+
 
 ---
 
