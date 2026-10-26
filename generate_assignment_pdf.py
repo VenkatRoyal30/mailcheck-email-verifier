@@ -211,18 +211,18 @@ def build_pdf(output_filename="assignment_submission.pdf"):
 
     # 7. Testing Summary Table
     story.append(Paragraph("7. Automated Testing Summary (Actual Test Execution)", h1_style))
-    story.append(Paragraph("All 58 backend and integration tests executed and passed via pytest under Python 3.14.0 with mocked DNS and socket layers:", body_style))
+    story.append(Paragraph("All 63 backend and integration tests executed and passed via pytest under Python 3.14.0 with mocked DNS and socket layers:", body_style))
 
     test_table_data = [
         [Paragraph("Test Module", table_header_style), Paragraph("Scope & Test Focus", table_header_style), Paragraph("Tests", table_header_style), Paragraph("Outcome", table_header_style)],
         [Paragraph("test_syntax.py", table_cell_style), Paragraph("RFC syntax validation, separators, length constraints, illegal whitespace, malformed labels", table_cell_style), Paragraph("10", table_cell_style), Paragraph("10 PASSED", table_cell_style)],
         [Paragraph("test_dns.py", table_cell_style), Paragraph("MX records, RFC 7505 Null MX, RFC 5321 A/AAAA fallback, NXDOMAIN, DNS timeouts, SERVFAIL", table_cell_style), Paragraph("7", table_cell_style), Paragraph("7 PASSED", table_cell_style)],
         [Paragraph("test_smtp.py", table_cell_style), Paragraph("Probe, catch-all detection, 550 rejection, 451 greylisting, port 25 timeout, Gmail timeout, policy/relay Unknown, definitive 5.1.1", table_cell_style), Paragraph("16", table_cell_style), Paragraph("16 PASSED", table_cell_style)],
-        [Paragraph("test_pipeline.py", table_cell_style), Paragraph("Pipeline stage skipping, default disabled SMTP, batch duplicates, limit, working-format Gmail timeout, regression suite", table_cell_style), Paragraph("11", table_cell_style), Paragraph("11 PASSED", table_cell_style)],
-        [Paragraph("test_api_verify.py", table_cell_style), Paragraph("POST /api/verify, input validation, multiline input, batch limits, database persistence", table_cell_style), Paragraph("6", table_cell_style), Paragraph("6 PASSED", table_cell_style)],
+        [Paragraph("test_pipeline.py", table_cell_style), Paragraph("Pipeline stage transitions, default disabled SMTP, batch duplicates, limit, cross-batch regressions, DNS caching, host unreachable caching", table_cell_style), Paragraph("15", table_cell_style), Paragraph("15 PASSED", table_cell_style)],
+        [Paragraph("test_api_verify.py", table_cell_style), Paragraph("POST /api/verify, input validation, multiline input, batch limits, database persistence, string enable_smtp parsing", table_cell_style), Paragraph("7", table_cell_style), Paragraph("7 PASSED", table_cell_style)],
         [Paragraph("test_api_history.py", table_cell_style), Paragraph("GET /api/history, batch detail, single record deletion with count recalculation, CSV export", table_cell_style), Paragraph("1", table_cell_style), Paragraph("1 PASSED", table_cell_style)],
         [Paragraph("test_frontend_routes.py", table_cell_style), Paragraph("GET /, SPA client routes, asset delivery, unknown /api 404 JSON, root WSGI app export, PostgreSQL URL normalization", table_cell_style), Paragraph("7", table_cell_style), Paragraph("7 PASSED", table_cell_style)],
-        [Paragraph("<b>TOTALS</b>", table_cell_style), Paragraph("<b>Comprehensive test suite with 100% pass rate in 2.79s</b>", table_cell_style), Paragraph("<b>58</b>", table_cell_style), Paragraph("<b>58 PASSED</b>", table_cell_style)],
+        [Paragraph("<b>TOTALS</b>", table_cell_style), Paragraph("<b>Comprehensive test suite with 100% pass rate in 2.53s</b>", table_cell_style), Paragraph("<b>63</b>", table_cell_style), Paragraph("<b>63 PASSED</b>", table_cell_style)],
     ]
 
     test_table = Table(test_table_data, colWidths=[100, 290, 50, 90])

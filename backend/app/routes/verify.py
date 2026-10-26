@@ -27,7 +27,13 @@ def verify_emails():
         return jsonify({"error": "Missing 'emails' field in request payload."}), 400
 
     raw_emails_input = data["emails"]
-    enable_smtp = bool(data.get("enable_smtp", current_app.config.get("ENABLE_SMTP_BY_DEFAULT", False)))
+    raw_enable_smtp = data.get("enable_smtp")
+    if raw_enable_smtp is None:
+        raw_enable_smtp = current_app.config.get("ENABLE_SMTP_BY_DEFAULT", False)
+    if isinstance(raw_enable_smtp, str):
+        enable_smtp = raw_enable_smtp.strip().lower() in ("true", "1", "yes")
+    else:
+        enable_smtp = bool(raw_enable_smtp)
 
     # Parse emails: support array or multiline string
     email_list = []

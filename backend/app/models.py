@@ -60,6 +60,14 @@ class EmailVerification(Base):
 
     batch = relationship("VerificationBatch", back_populates="records")
 
+    @property
+    def stage(self):
+        if not self.syntax_diagnostic or not self.syntax_diagnostic.get("valid"):
+            return "Stage 1: RFC Format & Syntax"
+        if self.smtp_skipped:
+            return "Stage 2: DNS & Mail Routing"
+        return "Stage 3: SMTP Recipient Probing"
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -67,6 +75,7 @@ class EmailVerification(Base):
             "original_email": self.original_email,
             "normalized_email": self.normalized_email,
             "status": self.status,
+            "stage": self.stage,
             "reason": self.reason,
             "syntax_diagnostic": self.syntax_diagnostic or {},
             "dns_diagnostic": self.dns_diagnostic or {},

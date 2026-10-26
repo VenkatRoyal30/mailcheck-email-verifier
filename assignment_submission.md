@@ -162,18 +162,18 @@ Bulk unthrottled SMTP probing without established IP reputation violates provide
 
 Testing was performed locally on Windows using `pytest 9.1.1` under `Python 3.14.0` with network-isolated mocks for DNS and socket layers:
 
-- **Total Test Cases Executed:** 58
-- **Passed:** 58
+- **Total Test Cases Executed:** 63
+- **Passed:** 63
 - **Failed:** 0
-- **Execution Time:** 2.79 seconds
+- **Execution Time:** 2.53 seconds
 
 | Test Module | Test Focus | Result |
 |---|---|---|
 | `test_syntax.py` | Valid formats, missing `@`, multiple `@`, missing local/domain, length limits, illegal whitespace, malformed labels | **PASS (10/10)** |
 | `test_dns.py` | MX records found, RFC 7505 Null MX, RFC 5321 A/AAAA fallback, NXDOMAIN, no routing, DNS timeout, SERVFAIL | **PASS (7/7)** |
 | `test_smtp.py` | Recipient accepted (250) routing disclaimer, catch-all detection, mailbox rejected (550), greylisting (451), port 25 timeout/block, Gmail timeout with exact explanation, ambiguous policy rejections, relay denied, definitive 5.1.1 is Fail, generic 550 is Unknown, user unknown is Fail, transient timeout retry success, server disconnect retry success, definitive rejection does not retry, greylisting does not retry | **PASS (16/16)** |
-| `test_pipeline.py` | Pipeline stage transitions, skipping on syntax failure, default disabled SMTP, batch duplicate detection, batch limit, working-format Gmail SMTP timeout handling with exact explanation, SMTP 250 routing disclosure, timeout followed by acceptance regression, acceptance followed by timeout regression, acceptance followed by bounce regression | **PASS (11/11)** |
-| `test_api_verify.py` | POST `/api/verify`, validation errors, multiline input, batch limits, database persistence | **PASS (6/6)** |
+| `test_pipeline.py` | Pipeline stage transitions, skipping on syntax failure, default disabled SMTP, batch duplicate detection, batch limit, working-format Gmail SMTP timeout handling, SMTP 250 routing disclosure, cross-batch regressions, DNS domain caching, unreachable host caching, RFC 7505 Null MX bounces, DNS SERVFAIL is unknown | **PASS (15/15)** |
+| `test_api_verify.py` | POST `/api/verify`, validation errors, multiline input, batch limits, database persistence, string-based `enable_smtp` parsing | **PASS (7/7)** |
 | `test_api_history.py` | GET `/api/history`, GET `/api/history/<id>`, DELETE record, DELETE batch, clear history, CSV export | **PASS (1/1)** |
 | `test_frontend_routes.py` | GET `/`, SPA client routes, asset delivery with proper MIME types, unknown `/api` routes return 404 JSON, root WSGI app export, PostgreSQL URL normalization | **PASS (7/7)** |
 

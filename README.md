@@ -310,12 +310,12 @@ Open your browser to: **`http://localhost:5173`** (API requests are automaticall
 The backend test suite uses `pytest` with network-isolated mocks for DNS and SMTP probing:
 
 ```powershell
-# Run all 58 backend tests with verbose output (executes in 2.79s under Python 3.14.0)
+# Run all 63 backend tests with verbose output (executes in 2.53s under Python 3.14.0)
 cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 .\venv\Scripts\pytest -v
 ```
 
-### Test Coverage Highlights (58 Passed Tests in 2.79s)
+### Test Coverage Highlights (63 Passed Tests in 2.53s)
 - ✅ RFC Syntax validation (valid, missing `@`, multiple `@`, length constraints, internal whitespace, malformed domain labels)
 - ✅ DNS resolution (MX records found, RFC 7505 Null MX, RFC 5321 fallback A/AAAA records, NXDOMAIN, timeout, SERVFAIL)
 - ✅ SMTP probing (recipient accepted 250, mailbox rejected 550, greylisting 451, catch-all detection, connection refused, port 25 timeout, Gmail timeout reported as Unknown with exact explanation)
@@ -323,8 +323,11 @@ cd "c:\Users\chinn\Downloads\EMAIL VERIFIER"
 - ✅ Definitive recipient rejections (`5.1.1`, "user unknown") are never retried and immediately classify as `Likely to bounce`
 - ✅ Temporary server responses (greylisting 451) and policy blocks (relay denied, Spamhaus) return `Unknown` without connection retries
 - ✅ Regression tests for identical addresses across batches: timeout followed by acceptance, acceptance followed by timeout, acceptance followed by definitive bounce
+- ✅ Domain-level DNS caching: batch processing caches DNS lookups per domain, eliminating redundant DNS queries across multi-recipient domains
+- ✅ Host-level unreachable caching: once a mail exchanger host fails or times out with maximum retries, subsequent addresses on that host in the same batch skip redundant port 25 delays
+- ✅ Explicit verification stage attribution (`Stage 1: RFC Format & Syntax`, `Stage 2: DNS & Mail Routing`, `Stage 3: Controlled SMTP Probing`) on all records and UI badges
 - ✅ SMTP 250 acceptance clearly notes routing evidence without claiming mailbox existence
-- ✅ REST API endpoints (`POST /api/verify`, `GET /api/history`, `DELETE /api/history/<batch_id>`, single-record deletion with count recalculation, CSV export, error handling)
+- ✅ REST API endpoints (`POST /api/verify` with robust string/boolean `enable_smtp` parsing, `GET /api/history`, `DELETE /api/history/<batch_id>`, single-record deletion with count recalculation, CSV export, error handling)
 - ✅ Frontend SPA and static asset delivery (`GET /`, client-side routing, assets MIME types, `/api/*` unknown 404 JSON handling)
 - ✅ Cloud deployment entry points (root `wsgi:app` export and Render PostgreSQL `postgres://` URL scheme normalization)
 - ✅ Batch limits enforcement (maximum 100 addresses) and duplicate handling

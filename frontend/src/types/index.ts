@@ -51,6 +51,7 @@ export interface EmailVerificationRecord {
   original_email: string;
   normalized_email: string | null;
   status: VerificationStatus;
+  stage?: string;
   reason: string;
   syntax_diagnostic: SyntaxDiagnostic;
   dns_diagnostic: DnsDiagnostic;

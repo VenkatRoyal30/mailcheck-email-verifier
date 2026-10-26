@@ -75,3 +75,30 @@ def test_api_verify_multiline_string_input(mock_verify_dns, client):
     assert res.status_code == 201
     data = res.get_json()
     assert data["total_count"] == 3
+
+@patch("app.verifier.pipeline.verify_dns")
+def test_api_verify_smtp_disabled_by_default_and_string_parsing(mock_verify_dns, client):
+    mock_verify_dns.return_value = {
+        "status": "PASS",
+        "reason": "MX records verified",
+        "has_mx": True,
+        "mx_records": [{"exchange": "mail.example.com", "preference": 10}]
+    }
+
+    # Case 1: enable_smtp omitted
+    res1 = client.post("/api/verify", json={"emails": ["test1@example.com"]})
+    assert res1.status_code == 201
+    assert res1.get_json()["smtp_enabled"] is False
+    assert res1.get_json()["records"][0]["status"] == "Likely to be delivered"
+    assert res1.get_json()["records"][0]["stage"] == "Stage 2: DNS & Mail Routing"
+
+    # Case 2: enable_smtp passed as string "false"
+    res2 = client.post("/api/verify", json={"emails": ["test2@example.com"], "enable_smtp": "false"})
+    assert res2.status_code == 201
+    assert res2.get_json()["smtp_enabled"] is False
+
+    # Case 3: enable_smtp passed as boolean False
+    res3 = client.post("/api/verify", json={"emails": ["test3@example.com"], "enable_smtp": False})
+    assert res3.status_code == 201
+    assert res3.get_json()["smtp_enabled"] is False
+

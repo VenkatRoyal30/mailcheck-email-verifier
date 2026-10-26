@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from .syntax import validate_syntax
 from .dns_verifier import verify_dns
 from .smtp_verifier import probe_smtp
@@ -18,7 +18,9 @@ def verify_single_email(
     dns_timeout: float = 3.0,
     smtp_timeout: float = 5.0,
     max_retries: int = 1,
-    resolver=None
+    resolver=None,
+    dns_cache: Optional[Dict[str, Any]] = None,
+    smtp_host_cache: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Executes the full MailCheck verification pipeline on a single email address.
@@ -35,6 +37,7 @@ def verify_single_email(
             "original_email": raw_email,
             "normalized_email": None,
             "status": STATUS_BOUNCE,
+            "stage": "Stage 1: RFC Format & Syntax",
             "reason": f"Invalid email format: {syntax_res['error_message']}",
             "syntax_diagnostic": syntax_res,
             "dns_diagnostic": {
@@ -52,15 +55,22 @@ def verify_single_email(
 
     domain = syntax_res["ascii_domain"]
     normalized_email = syntax_res["normalized"]
+    domain_key = domain.lower() if domain else ""
 
-    # 2. DNS stage
-    dns_res = verify_dns(domain, timeout=dns_timeout, resolver=resolver)
+    # 2. DNS stage (with domain-level caching per batch)
+    if dns_cache is not None and domain_key in dns_cache:
+        dns_res = dict(dns_cache[domain_key])
+    else:
+        dns_res = verify_dns(domain, timeout=dns_timeout, resolver=resolver)
+        if dns_cache is not None and domain_key:
+            dns_cache[domain_key] = dict(dns_res)
 
     if dns_res["status"] == "FAIL":
         return {
             "original_email": raw_email,
             "normalized_email": normalized_email,
             "status": STATUS_BOUNCE,
+            "stage": "Stage 2: DNS & Mail Routing",
             "reason": f"Domain routing failure: {dns_res['reason']}",
             "syntax_diagnostic": syntax_res,
             "dns_diagnostic": dns_res,
@@ -78,6 +88,7 @@ def verify_single_email(
             "original_email": raw_email,
             "normalized_email": normalized_email,
             "status": STATUS_UNKNOWN,
+            "stage": "Stage 2: DNS & Mail Routing",
             "reason": f"DNS resolution inconclusive: {dns_res['reason']}",
             "syntax_diagnostic": syntax_res,
             "dns_diagnostic": dns_res,
@@ -109,6 +120,7 @@ def verify_single_email(
             "original_email": raw_email,
             "normalized_email": normalized_email,
             "status": STATUS_DELIVERED,
+            "stage": "Stage 2: DNS & Mail Routing",
             "reason": reason_msg,
             "syntax_diagnostic": syntax_res,
             "dns_diagnostic": dns_res,
@@ -122,13 +134,29 @@ def verify_single_email(
         }
 
     # SMTP explicitly requested
-    smtp_res = probe_smtp(
-        email=normalized_email,
-        target_host=target_host,
-        domain=domain,
-        timeout=smtp_timeout,
-        max_retries=max_retries
-    )
+    if smtp_host_cache is not None and target_host in smtp_host_cache:
+        cached_smtp = smtp_host_cache[target_host]
+        # Reuse host-level port 25 block/timeout to prevent duplicate 10s socket timeouts on the same host in this batch
+        if cached_smtp.get("port_blocked") and cached_smtp.get("status") == "UNKNOWN":
+            smtp_res = dict(cached_smtp)
+        else:
+            smtp_res = probe_smtp(
+                email=normalized_email,
+                target_host=target_host,
+                domain=domain,
+                timeout=smtp_timeout,
+                max_retries=max_retries
+            )
+    else:
+        smtp_res = probe_smtp(
+            email=normalized_email,
+            target_host=target_host,
+            domain=domain,
+            timeout=smtp_timeout,
+            max_retries=max_retries
+        )
+        if smtp_host_cache is not None and target_host and smtp_res.get("port_blocked"):
+            smtp_host_cache[target_host] = dict(smtp_res)
 
     if smtp_res["status"] == "FAIL":
         final_status = STATUS_BOUNCE
@@ -173,6 +201,7 @@ def verify_single_email(
         "original_email": raw_email,
         "normalized_email": normalized_email,
         "status": final_status,
+        "stage": "Stage 3: SMTP Recipient Probing",
         "reason": final_reason,
         "syntax_diagnostic": syntax_res,
         "dns_diagnostic": dns_res,
@@ -189,7 +218,9 @@ def verify_batch(
     dns_timeout: float = 3.0,
     smtp_timeout: float = 5.0,
     max_retries: int = 1,
-    resolver=None
+    resolver=None,
+    dns_cache: Optional[Dict[str, Any]] = None,
+    smtp_host_cache: Optional[Dict[str, Any]] = None
 ) -> Tuple[Dict[str, int], List[Dict[str, Any]]]:
     """
     Verifies a batch of email addresses up to max_batch_size.
@@ -200,6 +231,8 @@ def verify_batch(
 
     results = []
     seen = set()
+    batch_dns_cache = dns_cache if dns_cache is not None else {}
+    batch_smtp_host_cache = smtp_host_cache if smtp_host_cache is not None else {}
 
     for item in raw_emails:
         email_str = str(item) if item is not None else ""
@@ -211,7 +244,9 @@ def verify_batch(
             dns_timeout=dns_timeout,
             smtp_timeout=smtp_timeout,
             max_retries=max_retries,
-            resolver=resolver
+            resolver=resolver,
+            dns_cache=batch_dns_cache,
+            smtp_host_cache=batch_smtp_host_cache
         )
 
         is_duplicate = norm_key in seen and norm_key != ""

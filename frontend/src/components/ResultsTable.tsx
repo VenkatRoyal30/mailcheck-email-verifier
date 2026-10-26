@@ -196,11 +196,26 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Reason */}
+                    {/* Reason & Stage Tag */}
                     <td className="py-3.5 px-4 sm:px-6 text-slate-600 dark:text-slate-300 max-w-sm">
-                      <p className="line-clamp-2 text-xs leading-relaxed">
-                        {r.reason}
-                      </p>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                              r.smtp_skipped
+                                ? !r.syntax_diagnostic?.valid
+                                  ? "bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                                  : "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                                : "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                            }`}
+                          >
+                            {r.stage || (r.smtp_skipped ? (!r.syntax_diagnostic?.valid ? "Stage 1: Syntax" : "Stage 2: DNS Routing") : "Stage 3: SMTP Probe")}
+                          </span>
+                        </div>
+                        <p className="line-clamp-2 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                          {r.reason}
+                        </p>
+                      </div>
                     </td>
 
                     {/* Routing Diagnostic Quick Tag */}

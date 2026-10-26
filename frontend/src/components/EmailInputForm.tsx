@@ -68,10 +68,12 @@ export const EmailInputForm: React.FC<EmailInputFormProps> = ({
 
   const handleLoadSample = () => {
     setText(SAMPLE_EMAILS.join("\n"));
+    setEnableSmtp(false);
   };
 
   const handleClear = () => {
     setText("");
+    setEnableSmtp(false);
   };
 
   return (
@@ -134,27 +136,48 @@ export const EmailInputForm: React.FC<EmailInputFormProps> = ({
         </div>
 
         {/* Optional SMTP Probing Toggle & Disclosures */}
-        <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-navy-950/70 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={enableSmtp}
-              disabled={isLoading}
-              onChange={(e) => setEnableSmtp(e.target.checked)}
-              className="w-4 h-4 text-brand-600 rounded border-slate-300 dark:border-slate-700 focus:ring-brand-500 disabled:opacity-50"
-            />
-            <span className="font-semibold text-slate-800 dark:text-slate-200">
-              Enable SMTP Mailbox Probing
-            </span>
-            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 border border-amber-300 dark:border-amber-800">
-              Optional / Experimental
-            </span>
-          </label>
+        <div
+          className={`mt-3 p-3 rounded-xl border transition-all text-xs ${
+            enableSmtp
+              ? "bg-amber-50/80 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800"
+              : "bg-slate-50 dark:bg-navy-950/70 border-slate-200/80 dark:border-slate-800"
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={enableSmtp}
+                disabled={isLoading}
+                onChange={(e) => setEnableSmtp(e.target.checked)}
+                className="w-4 h-4 text-brand-600 rounded border-slate-300 dark:border-slate-700 focus:ring-brand-500 disabled:opacity-50"
+              />
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                Enable SMTP Mailbox Probing
+              </span>
+              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 border border-amber-300 dark:border-amber-800">
+                Optional / Experimental
+              </span>
+            </label>
 
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Disabled by default. ISP/cloud firewalls frequently block outbound Port 25.</span>
-          </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>
+                {enableSmtp
+                  ? "SMTP active: connects to port 25 with retries (takes longer)."
+                  : "Disabled by default (recommended): fast Syntax & DNS MX verification without port 25 timeouts."}
+              </span>
+            </p>
+          </div>
+
+          {enableSmtp && (
+            <div className="mt-2.5 pt-2.5 border-t border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-1.5 leading-relaxed">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                <strong>Cloud Port 25 Notice:</strong> Hosting platforms (including Render) block outbound TCP port 25. Enabling this probe will cause connections to time out and report <strong>Unknown</strong>. Uncheck this box if you want fast verification based on syntax and active DNS mail routing (which classifies valid MX domains as <em>Likely to be delivered</em>).
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons & Progress Feedback */}
